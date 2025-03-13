@@ -1,24 +1,26 @@
 import socket
-import struct
 import time
+import struct
 from ntp_timestamp import to_NTPtimestamp
+from packet_builder import packet_builder
 
 DEFAULT_NTP_PORT = 123
 LOCAL_NTP_PORT = 5000
-NTP_PACKET_FORMAT = "!BBBb11I"
 
-def create_ntp_response(received_packet, key_id=0, key=None):
-    response_packet = bytearray(received_packet)
-    li_vn_mode = (0 << 6) | (4 << 3) | 4
-    response_packet[0] = li_vn_mode
-    
-    tx_timestamp = time.time() + 2208988800
-    packed_tx_timestamp = to_NTPtimestamp(tx_timestamp)
-    response_packet[40:48] = packed_tx_timestamp
-    
-    return response_packet
+def create_ntp_response(received_packet, recv_time):
+    recv_time_ntp = to_NTPtimestamp(recv_time + 2208988800)
+    transmit_time = time.time() + 2208988800
+    transmit_time_ntp = to_NTPtimestamp(transmit_time)
+    origin_timestamp = received_packet[40:48]
+    packet = packet_builder(
+        LI=0, VN=4, mode=4, stratum=2, poll=0, precision=0,
+        rootdelay=0, rootdisp=0, refid=0,
+        reftime=b'\x00' * 8, org=origin_timestamp, rec=recv_time_ntp,
+        xmt=transmit_time_ntp, chave=None
+    )
+    return packet
 
-def run_ntp_server(port=LOCAL_NTP_PORT, key_id=0, key=None):
+def run_ntp_server(port=LOCAL_NTP_PORT):
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server.bind(("", port))
     print(f"NTP server is running on port {port}")
@@ -27,7 +29,8 @@ def run_ntp_server(port=LOCAL_NTP_PORT, key_id=0, key=None):
         data, address = server.recvfrom(1024)
         if data:
             print(f"Received packet from {address}")
-            response_packet = create_ntp_response(data, key_id=key_id, key=key)
+            recv_time = time.time()
+            response_packet = create_ntp_response(data, recv_time)
             server.sendto(response_packet, address)
 
 if __name__ == "__main__":
