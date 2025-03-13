@@ -1,5 +1,6 @@
 import struct
-from ntp_hmac import calcular_hmac
+from ntp_hmac import calculate_hmac
+
 
 def packet_builder(
     LI,                             # Leap Indicator,       2 bits
@@ -20,6 +21,31 @@ def packet_builder(
     keyid=None,                     # key ID                32 bits
     chave=None                      # message digest        128 bits MD5 hash
 ):
+    '''
+    Constrói um pacote NTP com os campos fornecidos.
+
+    Args:
+        LI (int): Leap Indicator, 2 bits.
+        VN (int): Version Number, 3 bits.
+        mode (int): mode, 3 bits.
+        stratum (int): stratum, 8 bits.
+        poll (int): poll exponent, 8 bits.
+        precision (int): precision exponent, 8 bits.
+        rootdelay (int): root delay, 32 bits.
+        rootdisp (int): root dispersion, 32 bits.
+        refid (int): reference ID, 32 bits.
+        reftime (bytes): reference timestamp, 64 bits.
+        org (bytes): origin timestamp, 64 bits.
+        rec (bytes): receive timestamp, 64 bits.
+        xmt (bytes): transmit timestamp, 64 bits.
+        exf1 (bytes): Extension Field 1, variável.
+        exf2 (bytes): Extension Field 2, variável.
+        keyid (int): key ID, 32 bits.
+        chave (bytes): message digest, 128 bits.
+
+    Returns:
+        bytes: O pacote NTP construído.
+    '''
     # Montamos o cabeçalho
     packet = struct.pack(
         "!BBBbIII",
@@ -47,7 +73,7 @@ def packet_builder(
     
     # Adiciona o HMAC-SHA256 se keyid e chave existirem
     if keyid is not None and chave is not None:
-        digest = calcular_hmac(packet, chave)
+        digest = calculate_hmac(packet, chave)
         packet += struct.pack("!I", keyid)  # Converte o keyid para binário
         packet += digest                    # Concatena o digest no final do pacote
         
