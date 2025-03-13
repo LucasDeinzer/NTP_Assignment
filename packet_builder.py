@@ -1,6 +1,5 @@
 import struct
-import hmac
-import hashlib
+from ntp_hmac import calcular_hmac
 
 def packet_builder(
     LI,                             # Leap Indicator,       2 bits
@@ -47,12 +46,9 @@ def packet_builder(
         packet += exf2_padded
     
     # Adiciona o HMAC-SHA256 se keyid e chave existirem
-    if keyid and chave:
-        digest = calcular_hmac_client(packet, chave)
+    if keyid is not None and chave is not None:
+        digest = calcular_hmac(packet, chave)
         packet += struct.pack("!I", keyid)  # Converte o keyid para binário
         packet += digest                    # Concatena o digest no final do pacote
         
     return packet
-
-def calcular_hmac_client(packet, chave):
-    return hmac.new(chave, packet, hashlib.sha256).digest()

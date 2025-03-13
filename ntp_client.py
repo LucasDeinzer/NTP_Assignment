@@ -3,18 +3,20 @@ import time
 import struct
 from ntp_timestamp import to_NTPtimestamp, timestamp_to_double
 from packet_builder import packet_builder
+from ntp_hmac import calcular_hmac
 
 DEFAULT_NTP_SERVER = "pool.ntp.org"
 DEFAULT_NTP_PORT = 123
 LOCAL_NTP_PORT = 5000
+SHARED_SECRET = b'supersecret'  # Chave compartilhada para HMAC-SHA256
 
 def create_ntp_request(version=4, mode=3):
     current_time = time.time() + 2208988800  # Convert to NTP epoch
     packet = packet_builder(
         LI=0, VN=version, mode=mode, stratum=0, poll=0, precision=0,
         rootdelay=0, rootdisp=0, refid=0,
-        reftime=b'\x00' * 8, org=b'\x00' * 8, rec=b'\x00' * 8,
-        xmt=to_NTPtimestamp(current_time), chave=None
+        reftime=struct.pack("!Q", 0), org=struct.pack("!Q", 0), rec=struct.pack("!Q", 0),
+        xmt=to_NTPtimestamp(current_time), keyid=1, chave=SHARED_SECRET  # Inclui keyid e chave
     )
     return packet
 
