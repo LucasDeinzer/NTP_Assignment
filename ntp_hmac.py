@@ -27,4 +27,4 @@ def verificar_hmac(data, chave, hmac_recebido):
         bool: Verdadeiro se o HMAC recebido corresponde ao HMAC calculado, falso caso contrário.
     """
     hmac_calculado = calcular_hmac(data, chave)
-    return hmac.compare_digest(hmac_calculado, hmac_recebido)
+    return hmac.compare_digest(hmac_recebido, hmac_calculado)

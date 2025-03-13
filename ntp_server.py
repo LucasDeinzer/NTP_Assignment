@@ -15,11 +15,21 @@ def verify_hmac_server(packet, chave):
     if keyid != 1:
         return False
     received_digest = packet[-32:]
+    
     calculated_digest = calcular_hmac(packet[:-32], chave)
     return hmac.compare_digest(received_digest, calculated_digest)
 
 def create_ntp_response(received_packet, recv_time):
-    if not verificar_hmac(received_packet[:-32], SHARED_SECRET, received_packet[-32:]):
+    hmac_position = len(received_packet) - 32
+    if hmac_position < 0:
+        print("Error: Packet too short to contain HMAC")
+        return None  # Evita processar pacotes inválidos
+
+    extracted_data = received_packet[:-32]  # Remove os últimos 32 bytes (HMAC)
+    extracted_hmac = received_packet[-32:]  # Últimos 32 bytes são o HMAC
+
+
+    if not verificar_hmac(extracted_data, SHARED_SECRET, extracted_hmac):
         print("HMAC verification failed")
         return None
 
@@ -33,6 +43,7 @@ def create_ntp_response(received_packet, recv_time):
         reftime=b'\x00' * 8, org=origin_timestamp, rec=recv_time_ntp,
         xmt=transmit_time_ntp, keyid=1, chave=SHARED_SECRET  # Inclui keyid e chave
     )
+    
     return packet
 
 def run_ntp_server(port=LOCAL_NTP_PORT):

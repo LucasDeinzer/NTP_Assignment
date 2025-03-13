@@ -10,15 +10,22 @@ DEFAULT_NTP_PORT = 123
 LOCAL_NTP_PORT = 5000
 SHARED_SECRET = b'supersecret'  # Chave compartilhada para HMAC-SHA256
 
-def create_ntp_request(version=4, mode=3):
-    current_time = time.time() + 2208988800  # Convert to NTP epoch
+def create_ntp_request(version=4, mode=3, flag=0):
+    current_time = time.time() + 2208988800
     packet = packet_builder(
         LI=0, VN=version, mode=mode, stratum=0, poll=0, precision=0,
         rootdelay=0, rootdisp=0, refid=0,
         reftime=struct.pack("!Q", 0), org=struct.pack("!Q", 0), rec=struct.pack("!Q", 0),
-        xmt=to_NTPtimestamp(current_time), keyid=1, chave=SHARED_SECRET  # Inclui keyid e chave
+        xmt=to_NTPtimestamp(current_time), keyid=1, chave=SHARED_SECRET
     )
-    return packet
+
+    if flag == 0:
+        return packet
+
+    else:
+        hmac_calculado = calcular_hmac(packet[:-32], SHARED_SECRET)
+        packet_with_hmac = packet[:-32] + hmac_calculado
+        return packet_with_hmac
 
 def parse_ntp_response(packet):
     unpacked = struct.unpack("!12I", packet[:48])
@@ -28,7 +35,11 @@ def parse_ntp_response(packet):
 
 def get_ntp_time(ntp_server, port=DEFAULT_NTP_PORT, version=4):
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    packet = create_ntp_request(version=version, mode=3)
+    if ntp_server == "pool.ntp.org":
+        flag = 0
+    else:
+        flag = 1
+    packet = create_ntp_request(version=version, mode=3, flag=flag)
     t1 = time.time()
     client.sendto(packet, (ntp_server, port))
     data, _ = client.recvfrom(1024)
